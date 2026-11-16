@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Dashboard')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('dashboard')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Workspace', 'Dashboard')}"></header>
+
+    <main class="content">
+
+      <div class="page-header">
+        <div>
+          <h1 class="page-title"><span th:text="${greeting}">Good morning</span>, <span th:text="${firstName}">Aarav</span></h1>
+          <p class="page-subtitle" th:if="${requesterView}">Here is where your requests stand today.</p>
+          <p class="page-subtitle" th:unless="${requesterView}">Welcome to PolicyFlow administration.</p>
+        </div>
+        <a class="btn btn-primary" th:if="${requesterView}" th:href="@{/requests/new}">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          New request
+        </a>
+      </div>
+
+      <!-- ADMINISTRATOR VIEW -->
+      <section class="card" th:unless="${requesterView}">
+        <div class="empty">
+          <div class="empty-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6.5 6.5 0 0 1 3.5 6"/></svg>
+          </div>
+          <h3>Administrator workspace</h3>
+          <p>Requests are raised by employees. Your tools live in the Administration area.</p>
+          <a class="btn btn-primary mt-4" th:href="@{/admin}">Open administration</a>
+        </div>
+      </section>
+
+      <!-- REQUESTER VIEW -->
+      <th:block th:if="${requesterView}">
+
+        <!-- KPI cards -->
+        <div class="grid grid-4">
+          <article class="card kpi">
+            <div class="kpi-head">
+              <span class="kpi-label">Total requests</span>
+              <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span>
+            </div>
+            <div class="kpi-value" th:text="${summary.total}">0</div>
+            <div class="kpi-foot">All time, excluding cancelled</div>
+          </article>
+
+          <article class="card kpi">
+            <div class="kpi-head">
+              <span class="kpi-label">Pending approval</span>
+              <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            </div>
+            <div class="kpi-value" th:text="${summary.pendingApproval}">0</div>
+            <div class="kpi-foot">Waiting for an approver</div>
+          </article>
+
+          <article class="card kpi">
+            <div class="kpi-head">
+              <span class="kpi-label">Total value</span>
+              <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8h6M9 11h6M9.5 8c3.5 0 3.5 5 0 5H9l5 4"/></svg></span>
+            </div>
+            <div class="kpi-value" th:text="${@money.format(summary.totalAmount, 0)}">₹0</div>
+            <div class="kpi-foot">Excludes cancelled requests</div>
+          </article>
+
+          <article class="card kpi">
+            <div class="kpi-head">
+              <span class="kpi-label">This month</span>
+              <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span>
+            </div>
+            <div class="kpi-value" th:text="${summary.thisMonthCount}">0</div>
+            <div class="kpi-foot">
+              <span class="trend trend-up" th:if="${summary.monthDelta > 0}">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+                <span th:text="${summary.monthDeltaAbs} + ' more than last month'">1 more than last month</span>
+              </span>
+              <span class="trend" th:if="${summary.monthDelta < 0}">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M7 7l10 10"/><path d="M17 8v9H8"/></svg>
+                <span th:text="${summary.monthDeltaAbs} + ' fewer than last month'">1 fewer than last month</span>
+              </span>
+              <span class="trend" th:if="${summary.monthDelta == 0}"
+                    th:text="${summary.lastMonthCount == 0} ? 'No requests last month' : 'Same as last month'">Same as last month</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- Lifecycle -->
+        <section class="card mt-6">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Request lifecycle</h2>
+              <p class="card-sub">How a request moves from draft to decision</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <ol class="flow">
+              <li class="flow-step is-live">
+                <span class="flow-dot">1</span>
+                <div class="flow-text">
+                  <strong>Draft</strong>
+                  <span class="flow-count" th:text="${summary.drafts}">0</span>
+                  <small>Saved, not sent</small>
+                </div>
+              </li>
+              <li class="flow-step is-live">
+                <span class="flow-dot">2</span>
+                <div class="flow-text">
+                  <strong>Submitted</strong>
+                  <span class="flow-count" th:text="${summary.submitted}">0</span>
+                  <small>Awaiting routing</small>
+                </div>
+              </li>
+              <li class="flow-step is-live">
+                <span class="flow-dot">3</span>
+                <div class="flow-text">
+                  <strong>Pending approval</strong>
+                  <span class="flow-count" th:text="${summary.pendingApproval}">0</span>
+                  <small>With approvers</small>
+                </div>
+              </li>
+              <li class="flow-step is-live">
+                <span class="flow-dot">4</span>
+                <div class="flow-text">
+                  <strong>Approved or rejected</strong>
+                  <span class="flow-count" th:text="${summary.approved + summary.rejected}">0</span>
+                  <small><span th:text="${summary.approved}">0</span> approved · <span th:text="${summary.rejected}">0</span> rejected</small>
+                </div>
+              </li>
+            </ol>
+            <p class="flow-note">
+              Cancelled requests: <strong th:text="${summary.cancelled}">0</strong>.
+            </p>
+          </div>
+        </section>
+
+        <!-- Recent requests + side panels -->
+        <div class="dash-grid mt-6">
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Recent requests</h2>
+                <p class="card-sub">Your latest five</p>
+              </div>
+              <a class="btn btn-secondary btn-sm" th:href="@{/requests}">View all</a>
+            </div>
+
+            <div class="empty" th:if="${#lists.isEmpty(summary.recent)}">
+              <div class="empty-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+              </div>
+              <h3>No requests yet</h3>
+              <p>When you submit a purchase or expense request, it will appear here.</p>
+              <a class="btn btn-primary mt-4" th:href="@{/requests/new}">Create your first request</a>
+            </div>
+
+            <div class="table-wrap" th:unless="${#lists.isEmpty(summary.recent)}">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Reference</th>
+                    <th>Request</th>
+                    <th class="num">Amount (INR)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="r : ${summary.recent}">
+                    <td><a class="ref-link" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.reference}">PF-00001</a></td>
+                    <td class="title-cell">
+                      <a class="table-link" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.title}">Title</a>
+                      <div class="cell-sub" th:text="${r.category.label}">Hardware</div>
+                    </td>
+                    <td class="num" th:text="${@money.format(r.amount, 2)}">₹0.00</td>
+                    <td><span class="badge" th:classappend="${r.status.badgeClass}" th:text="${r.status.label}">Pending approval</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="dash-side">
+            <section class="card">
+              <div class="card-header">
+                <h2 class="card-title">Quick actions</h2>
+              </div>
+              <div class="card-body">
+                <div class="quick-list">
+                  <a class="quick-item" th:href="@{/requests/new}">
+                    <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+                    New request
+                    <svg class="icon icon-sm chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+                  </a>
+                  <a class="quick-item" th:href="@{/requests}">
+                    <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span>
+                    All my requests
+                    <svg class="icon icon-sm chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+                  </a>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Value by category</h2>
+                  <p class="card-sub">Excludes cancelled</p>
+                </div>
+              </div>
+              <div class="card-body">
+                <p class="text-muted" th:if="${#lists.isEmpty(summary.categories)}">
+                  Spending by category appears once you submit a request.
+                </p>
+                <div class="cat-list" th:unless="${#lists.isEmpty(summary.categories)}">
+                  <div th:each="c : ${summary.categories}">
+                    <div class="cat-head">
+                      <span class="cat-name" th:text="${c.label}">Hardware</span>
+                      <span class="cat-amount" th:text="${@money.format(c.amount, 0)}">₹0</span>
+                    </div>
+                    <div class="cat-bar" role="img" th:attr="aria-label=${c.label + ': ' + c.percent + ' percent of total value'}">
+                      <span th:style="'width:' + ${c.percent} + '%'"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+      </th:block>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

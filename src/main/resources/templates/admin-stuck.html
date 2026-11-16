@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Stuck requests')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('admin-stuck')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Administration', 'Stuck requests')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Stuck requests</h1>
+          <p class="page-subtitle">Pending requests whose current step has nobody who is allowed to decide it.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-success" th:if="${successMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        <div><strong>Done</strong><span th:text="${successMessage}">Saved.</span></div>
+      </div>
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Not saved</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <div class="alert alert-info" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <div>
+          <strong>Best fix: give the step an approver</strong>
+          Activate or create a user with the missing role on the <a th:href="@{/admin/users}">Users</a> page.
+          The request then appears in that person's queue by itself. Close a request below only if it cannot proceed.
+        </div>
+      </div>
+
+      <section class="card" th:if="${#lists.isEmpty(stuck)}">
+        <div class="empty">
+          <div class="empty-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+          </div>
+          <h3>Nothing is stuck</h3>
+          <p>Every pending request has an approver who can decide its current step.</p>
+        </div>
+      </section>
+
+      <div class="stuck-list" th:unless="${#lists.isEmpty(stuck)}">
+        <section class="card" th:each="s : ${stuck}">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title" th:text="${s.title}">Request title</h2>
+              <p class="card-sub">
+                <span th:text="${s.reference}">PF-00001</span> ·
+                <span th:text="${@money.format(s.amount, 2)}">₹0.00</span>
+              </p>
+            </div>
+            <span class="badge badge-warning" th:text="'Step ' + ${s.stepNumber} + ' of ' + ${s.totalSteps}">Step 1 of 2</span>
+          </div>
+          <div class="card-body">
+            <dl class="details-list">
+              <div><dt>Requester</dt><dd th:text="${s.requesterName}">Name</dd></div>
+              <div><dt>Department</dt><dd th:text="${s.departmentName}">Engineering</dd></div>
+              <div><dt>Category</dt><dd th:text="${s.categoryLabel}">Hardware</dd></div>
+              <div><dt>Submitted</dt><dd th:text="${s.submittedAt != null} ? ${#temporals.format(s.submittedAt, 'dd MMM yyyy')} : '—'">—</dd></div>
+              <div><dt>Waiting for</dt><dd th:text="${s.waitingRoleLabel}">Manager</dd></div>
+            </dl>
+
+            <div class="alert alert-warning" style="margin-top: var(--space-4);">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              <div th:text="${s.explanation}">Explanation</div>
+            </div>
+
+            <form class="stuck-form" th:action="@{/admin/stuck/{id}/close(id=${s.requestId})}" method="post"
+                  onsubmit="return confirm('Close this request? It will be marked as rejected and the requester will see your reason.');">
+              <div class="field">
+                <label class="label" th:for="${'reason-' + s.requestId}">Reason for closing (required, shown to the requester)</label>
+                <textarea th:id="${'reason-' + s.requestId}" name="reason" class="textarea" rows="3" maxlength="1000"
+                          placeholder="e.g. The department has no manager at the moment. Please resubmit once one is assigned."></textarea>
+              </div>
+              <div class="decision-actions">
+                <button type="submit" class="btn btn-danger">Close request</button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<!-- HEAD fragment: usage  th:replace="~{layout :: head('Page title')}" -->
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title} + ' · PolicyFlow'">PolicyFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+
+<body>
+
+<!-- SIDEBAR fragment: usage  th:replace="~{layout :: sidebar('dashboard')}" -->
+<aside th:fragment="sidebar(active)" class="sidebar" id="sidebar" aria-label="Main navigation">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M5 5h6a3 3 0 0 1 0 6H5z"/><path d="M5 11v8"/><path d="M13 15h6"/><path d="m16 12 3 3-3 3"/></svg>
+    </div>
+    <span class="brand-name">Policy<span>Flow</span></span>
+  </div>
+
+  <div class="sidebar-scroll">
+
+    <!-- Workspace: dashboard for everyone, request pages for every role except ADMIN -->
+    <nav class="nav-group" th:if="${currentUser != null}">
+      <div class="nav-label">Workspace</div>
+
+      <a th:href="@{/}" class="nav-item" th:classappend="${active == 'dashboard'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+
+      <th:block th:if="${currentUser.role.name() != 'ADMIN'}">
+        <a th:href="@{/requests}" class="nav-item" th:classappend="${active == 'my-requests'} ? 'is-active'">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+          My Requests
+        </a>
+        <a th:href="@{/requests/new}" class="nav-item" th:classappend="${active == 'new-request'} ? 'is-active'">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          New Request
+        </a>
+      </th:block>
+    </nav>
+
+    <!-- Role area: only for the role that owns it -->
+    <nav class="nav-group" th:if="${currentUser != null and currentUser.role.name() != 'EMPLOYEE'}">
+      <div class="nav-label">Your area</div>
+
+      <a th:if="${currentUser.role.name() == 'MANAGER'}" th:href="@{/manager}" class="nav-item"
+         th:classappend="${active == 'manager'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="m9 11 3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
+        Approvals
+      </a>
+
+      <a th:if="${currentUser.role.name() == 'FINANCE_OFFICER'}" th:href="@{/finance}" class="nav-item"
+         th:classappend="${active == 'finance'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3"/><path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3"/><path d="M21 11h-4a2 2 0 0 0 0 4h4z"/></svg>
+        Finance review
+      </a>
+
+      <a th:if="${currentUser.role.name() == 'DEPARTMENT_HEAD'}" th:href="@{/department}" class="nav-item"
+         th:classappend="${active == 'department'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/></svg>
+        Department
+      </a>
+
+      <a th:if="${currentUser.role.name() == 'ADMIN'}" th:href="@{/admin}" class="nav-item"
+         th:classappend="${active == 'admin'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.2 8.2 8 9 4.8-.8 8-4.5 8-9V6z"/></svg>
+        Overview
+      </a>
+
+      <a th:if="${currentUser.role.name() == 'ADMIN'}" th:href="@{/admin/users}" class="nav-item"
+         th:classappend="${active == 'admin-users'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6.5 6.5 0 0 1 3.5 6"/></svg>
+        Users
+      </a>
+
+      <a th:if="${currentUser.role.name() == 'ADMIN'}" th:href="@{/admin/policies}" class="nav-item"
+         th:classappend="${active == 'admin-policies'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.2 8.2 8 9 4.8-.8 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+        Policies
+      </a>
+      
+      <a th:if="${currentUser.role.name() == 'ADMIN'}" th:href="@{/admin/audit}" class="nav-item"
+         th:classappend="${active == 'admin-audit'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 6H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"/><path d="M8 12h8M8 16h5"/></svg>
+        Audit log
+      </a>
+
+      <a th:if="${currentUser.role.name() == 'ADMIN'}" th:href="@{/admin/stuck}" class="nav-item"
+         th:classappend="${active == 'admin-stuck'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        Stuck requests
+      </a>
+    </nav>
+
+    <nav class="nav-group" th:if="${currentUser != null}">
+      <div class="nav-label">Insights</div>
+      <a th:href="@{/policies}" class="nav-item" th:classappend="${active == 'policies'} ? 'is-active'"
+         th:if="${currentUser.role.name() != 'ADMIN'}">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.2 8.2 8 9 4.8-.8 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+        Policies
+      </a>
+      <a th:href="@{/notifications}" class="nav-item" th:classappend="${active == 'notifications'} ? 'is-active'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+        Notifications
+      </a>
+    </nav>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="role-card">
+      <div class="avatar" th:text="${currentUser != null} ? ${currentUser.initials} : '?'">AS</div>
+      <div>
+        <strong th:text="${currentUser != null} ? ${currentUser.fullName} : 'Guest'">Aarav Sharma</strong>
+        <small th:text="${currentUser != null} ? ${currentUser.roleLabel} : 'Not signed in'">Employee</small>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- TOPBAR fragment: usage  th:replace="~{layout :: topbar('Workspace', 'Dashboard')}" -->
+<header th:fragment="topbar(section, page)" class="topbar">
+  <div class="topbar-left">
+    <button type="button" class="icon-btn menu-toggle" id="menuToggle" aria-label="Open navigation">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <span class="crumb-parent" th:text="${section}">Workspace</span>
+      <span class="sep">/</span>
+      <span class="current" th:text="${page}">Page</span>
+    </nav>
+  </div>
+
+  <div class="topbar-right">
+    <th:block th:if="${currentUser != null}" th:with="unread=${@notificationService.unreadCount(currentUser.id)}">
+      <a class="icon-btn" th:href="@{/notifications}" title="Notifications"
+         th:attr="aria-label=${unread > 0 ? 'Notifications, ' + unread + ' unread' : 'Notifications'}">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+        <span class="count-badge" th:if="${unread > 0}" th:text="${unread > 99 ? '99+' : unread}">3</span>
+      </a>
+    </th:block>
+
+    <div class="dropdown" id="profileDropdown">
+      <button type="button" class="profile-btn" id="profileToggle" aria-haspopup="true" aria-expanded="false">
+        <span class="avatar" th:text="${currentUser != null} ? ${currentUser.initials} : '?'">AS</span>
+        <span class="profile-meta">
+          <strong th:text="${currentUser != null} ? ${currentUser.fullName} : 'Guest'">Aarav Sharma</strong>
+          <small th:text="${currentUser != null} ? ${currentUser.roleLabel} : 'Not signed in'">Employee</small>
+        </span>
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="dropdown-menu" role="menu">
+        <div class="dropdown-head">
+          <strong th:text="${currentUser != null} ? ${currentUser.fullName} : 'Guest'">Aarav Sharma</strong>
+          <small th:text="${currentUser != null} ? ${currentUser.email} : ''">aarav@example.com</small>
+        </div>
+        <a class="dropdown-item" th:href="@{/account/password}" th:if="${currentUser != null}" role="menuitem">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          Change password
+        </a>
+        <form th:action="@{/logout}" method="post" class="dropdown-form" th:if="${currentUser != null}">
+          <button type="submit" class="dropdown-item" role="menuitem">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+            Sign out
+          </button>
+        </form>
+        <a class="dropdown-item" th:href="@{/login}" th:if="${currentUser == null}">Sign in</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- OVERLAY + SCRIPT fragment: usage  th:replace="~{layout :: scripts}" -->
+<th:block th:fragment="scripts">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <script th:src="@{/js/app.js}"></script>
+</th:block>
+
+</body>
+</html>

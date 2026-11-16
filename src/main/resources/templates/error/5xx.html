@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Something went wrong')}"></head>
+<body>
+<div class="app">
+  <aside th:replace="~{layout :: sidebar('')}"></aside>
+  <div class="main">
+    <header th:replace="~{layout :: topbar('PolicyFlow', 'Error')}"></header>
+    <main th:replace="~{error/error-content :: content(${status}, 'Something went wrong on our side', 'An unexpected error occurred. Please try again in a moment. If it keeps happening, contact your administrator.')}"></main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

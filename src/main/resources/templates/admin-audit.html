@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Audit log')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('admin-audit')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Administration', 'Audit log')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Audit log</h1>
+          <p class="page-subtitle">A permanent record of significant actions. Entries cannot be edited or deleted.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Check the filters</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <section class="card">
+        <form class="filter-bar" th:action="@{/admin/audit}" method="get">
+          <div class="field">
+            <label class="label" for="action">Action</label>
+            <select id="action" name="action" class="select">
+              <option value="">All actions</option>
+              <option th:each="a : ${actions}" th:value="${a.key}" th:text="${a.value}"
+                      th:selected="${a.key == actionFilter}">Request approved</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="entityType">Entity</label>
+            <select id="entityType" name="entityType" class="select">
+              <option value="">All entities</option>
+              <option th:each="t : ${entityTypes}" th:value="${t.key}" th:text="${t.value}"
+                      th:selected="${t.key == entityTypeFilter}">Request</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label class="label" for="actor">Done by (email)</label>
+            <input id="actor" name="actor" type="search" class="input" th:value="${actorFilter}" placeholder="e.g. meera">
+          </div>
+          <div class="field">
+            <label class="label" for="from">From</label>
+            <input id="from" name="from" type="date" class="input" th:value="${fromFilter}">
+          </div>
+          <div class="field">
+            <label class="label" for="to">To</label>
+            <input id="to" name="to" type="date" class="input" th:value="${toFilter}">
+          </div>
+          <button type="submit" class="btn btn-secondary">Filter</button>
+          <a class="btn btn-ghost" th:href="@{/admin/audit}">Clear</a>
+        </form>
+
+        <div class="empty" th:if="${#lists.isEmpty(entries.content)}">
+          <h3>No entries found</h3>
+          <p>Try different filters or clear them.</p>
+        </div>
+
+        <div class="table-wrap" th:unless="${#lists.isEmpty(entries.content)}">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Action</th>
+                <th>Done by</th>
+                <th>Entity</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="e : ${entries.content}">
+                <td class="nowrap" th:text="${#temporals.format(e.createdAt, 'dd MMM yyyy, HH:mm:ss')}">—</td>
+                <td><span class="badge badge-neutral" th:text="${e.actionLabel}">Request approved</span></td>
+                <td th:text="${e.actorEmail}">actor</td>
+                <td class="nowrap">
+                  <a th:if="${e.link != null}" th:href="@{${e.link}}" th:text="${e.entityLabel} + ' #' + ${e.entityId}">User #1</a>
+                  <span th:if="${e.link == null}" th:text="${e.entityLabel} + ' #' + ${e.entityId}">Request #1</span>
+                </td>
+                <td class="title-cell" th:text="${e.details}">Details</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager" th:if="${entries.totalElements > 0}">
+          <span class="small"
+                th:text="'Showing ' + ${entries.number * entries.size + 1} + '–' + ${entries.number * entries.size + entries.numberOfElements} + ' of ' + ${entries.totalElements}">Showing 1–20 of 57</span>
+          <div class="actions-cell">
+            <a class="btn btn-secondary btn-sm" th:if="${entries.hasPrevious()}"
+               th:href="@{/admin/audit(action=${actionFilter}, entityType=${entityTypeFilter}, actor=${actorFilter}, from=${fromFilter}, to=${toFilter}, page=${entries.number - 1})}">Previous</a>
+            <a class="btn btn-secondary btn-sm" th:if="${entries.hasNext()}"
+               th:href="@{/admin/audit(action=${actionFilter}, entityType=${entityTypeFilter}, actor=${actorFilter}, from=${fromFilter}, to=${toFilter}, page=${entries.number + 1})}">Next</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

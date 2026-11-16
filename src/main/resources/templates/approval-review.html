@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Review request')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar(${activeNav})}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Approvals', 'Review')}"></header>
+
+    <main class="content" th:with="r=${review.request}">
+      <a class="back-link" th:href="${areaPath}">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        Back to <span th:text="${areaTitle}">approvals</span>
+      </a>
+
+      <div class="page-header">
+        <div>
+          <div class="title-row">
+            <h1 class="page-title" th:text="${r.title}">Request title</h1>
+            <span class="badge" th:classappend="${r.status.badgeClass}" th:text="${r.status.label}">Pending approval</span>
+            <span class="badge" th:if="${r.priority.name() != 'NORMAL'}" th:classappend="${r.priority.badgeClass}" th:text="${r.priority.label}">Urgent</span>
+          </div>
+          <p class="page-subtitle">
+            Reference <strong th:text="${r.reference}">PF-00001</strong>
+            <span th:if="${r.currentStage != null}">
+              · Waiting for <strong th:text="${r.currentStage.approverRole.label}">Manager</strong>
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <div class="alert alert-success" th:if="${successMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        <div><strong>Done</strong><span th:text="${successMessage}">Saved.</span></div>
+      </div>
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Not saved</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <div class="form-layout">
+
+        <div class="dash-side">
+          <section class="card">
+            <div class="card-header">
+              <h2 class="card-title">Request details</h2>
+            </div>
+            <div class="card-body">
+              <dl class="details-list">
+                <div>
+                  <dt>Amount</dt>
+                  <dd class="amount-lg" th:text="${@money.format(r.amount, 2)}">₹0.00</dd>
+                </div>
+                <div>
+                  <dt>Category</dt>
+                  <dd th:text="${r.category.label}">Hardware</dd>
+                </div>
+                <div>
+                  <dt>Requester</dt>
+                  <dd th:text="${r.employee.fullName}">Name</dd>
+                </div>
+                <div>
+                  <dt>Department</dt>
+                  <dd th:text="${r.employee.department.name}">Engineering</dd>
+                </div>
+                <div>
+                  <dt>Submitted on</dt>
+                  <dd th:text="${r.submittedAt != null} ? ${#temporals.format(r.submittedAt, 'dd MMM yyyy, HH:mm')} : '—'">—</dd>
+                </div>
+                <div>
+                  <dt>Policy routing</dt>
+                  <dd class="prewrap" th:text="${r.routingSummary != null} ? ${r.routingSummary} : '—'">—</dd>
+                </div>
+                <div class="span-2">
+                  <dt>Description / justification</dt>
+                  <dd class="prewrap" th:text="${r.description}">Description</dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          <!-- Decision form: only when this approver can decide right now -->
+          <section class="card" th:if="${review.canDecide}">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Your decision</h2>
+                <p class="card-sub">Add a comment for the record. A comment is required to reject.</p>
+              </div>
+            </div>
+            <form th:action="${approveUrl}" method="post">
+              <div class="card-body">
+                <div class="field">
+                  <label class="label" for="comment">Comment</label>
+                  <textarea id="comment" name="comment" class="textarea" rows="4" maxlength="1000"
+                            placeholder="Explain your decision (required when rejecting)."></textarea>
+                </div>
+                <div class="decision-actions">
+                  <button type="submit" class="btn btn-primary">Approve</button>
+                  <button type="submit" class="btn btn-danger" th:formaction="${rejectUrl}">Reject</button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <section class="card" th:unless="${review.canDecide}">
+            <div class="card-body">
+              <div class="alert alert-info">
+                <div>
+                  <strong>Read only</strong>
+                  <span th:if="${review.note != null}" th:text="${review.note}">PF-00001 was already approved by a colleague.</span>
+                  <span th:if="${review.note == null}">This request is not awaiting your decision.</span>
+                  You can see its history below.
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="dash-side">
+          <aside class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Approval chain</h2>
+                <p class="card-sub">Set by company policy at submission</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <ol class="stage-list">
+                <li class="stage-item" th:each="stage : ${r.stages}"
+                    th:classappend="'is-' + ${#strings.toLowerCase(stage.status.name())}">
+                  <span class="stage-num" th:text="${stage.stepNumber}">1</span>
+                  <div class="stage-body">
+                    <strong th:text="${stage.approverRole.label}">Manager</strong>
+                    <small th:text="${stage.approverRole.name() == 'FINANCE_OFFICER'} ? 'Finance team' : 'Requester’s department'">Department</small>
+                  </div>
+                  <span class="badge" th:classappend="${stage.status.badgeClass}" th:text="${stage.status.label}">Awaiting decision</span>
+                </li>
+              </ol>
+            </div>
+          </aside>
+
+          <aside class="card">
+            <div class="card-header">
+              <h2 class="card-title">Approval history</h2>
+            </div>
+            <div class="card-body">
+              <p class="text-muted" th:if="${#lists.isEmpty(review.history)}">No decisions have been recorded yet.</p>
+              <ol class="history-list" th:unless="${#lists.isEmpty(review.history)}">
+                <li class="history-item" th:each="h : ${review.history}">
+                  <div class="history-head">
+                    <strong th:text="${h.actorName}">Name</strong>
+                    <span class="badge" th:classappend="${h.badgeClass}" th:text="${h.actionLabel}">Approved</span>
+                  </div>
+                  <div class="history-meta">
+                    <span th:text="${h.actorRoleLabel}">Manager</span>
+                    <span th:if="${h.stepNumber != null}"> · Step <span th:text="${h.stepNumber}">1</span></span>
+                    · <span th:text="${#temporals.format(h.createdAt, 'dd MMM yyyy, HH:mm')}">—</span>
+                  </div>
+                  <p class="history-comment" th:if="${h.comment != null}" th:text="${h.comment}">Comment</p>
+                </li>
+              </ol>
+            </div>
+          </aside>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

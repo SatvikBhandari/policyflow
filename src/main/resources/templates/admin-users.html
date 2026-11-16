@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Users')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('admin-users')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Administration', 'Users')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Users</h1>
+          <p class="page-subtitle">Create accounts, assign roles and departments, and control access.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/admin/users/new}">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          New user
+        </a>
+      </div>
+
+      <div class="alert alert-success" th:if="${successMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        <div><strong>Done</strong><span th:text="${successMessage}">Saved.</span></div>
+      </div>
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Not saved</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <section class="card">
+        <form class="filter-bar" th:action="@{/admin/users}" method="get">
+          <div class="field grow">
+            <label class="label" for="q">Search</label>
+            <input id="q" name="q" type="search" class="input" th:value="${q}" placeholder="Name or email">
+          </div>
+          <div class="field">
+            <label class="label" for="role">Role</label>
+            <select id="role" name="role" class="select">
+              <option value="">All roles</option>
+              <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}" th:selected="${r == selectedRole}">Employee</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="status">Status</label>
+            <select id="status" name="status" class="select">
+              <option value="" th:selected="${status == ''}">All</option>
+              <option value="active" th:selected="${status == 'active'}">Active</option>
+              <option value="inactive" th:selected="${status == 'inactive'}">Inactive</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-secondary">Filter</button>
+          <a class="btn btn-ghost" th:href="@{/admin/users}">Clear</a>
+        </form>
+
+        <div class="card-header">
+          <p class="card-sub" th:text="${#lists.size(users)} + (${#lists.size(users)} == 1 ? ' user' : ' users')">0 users</p>
+        </div>
+
+        <div class="empty" th:if="${#lists.isEmpty(users)}">
+          <h3>No users found</h3>
+          <p>Try a different search or clear the filters.</p>
+        </div>
+
+        <div class="table-wrap" th:unless="${#lists.isEmpty(users)}">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="u : ${users}">
+                <td>
+                  <div class="cell-title" th:text="${u.fullName}">Name</div>
+                  <div class="cell-sub" th:text="${u.email}">email</div>
+                </td>
+                <td><span class="badge badge-primary" th:text="${u.role.label}">Employee</span></td>
+                <td th:text="${u.department.name}">Engineering</td>
+                <td>
+                  <span class="badge badge-success" th:if="${u.active}">Active</span>
+                  <span class="badge badge-neutral" th:unless="${u.active}">Inactive</span>
+                  <span class="badge badge-warning" th:if="${u.mustChangePassword}">Password change due</span>
+                </td>
+                <td>
+                  <div class="actions-cell">
+                    <span class="muted-self" th:if="${u.id == currentUser.id}">You</span>
+                    <form class="inline-form" th:if="${u.id != currentUser.id and u.active}"
+                          th:action="@{/admin/users/{id}/deactivate(id=${u.id})}" method="post"
+                          onsubmit="return confirm('Deactivate this user? They will be signed out of protected pages.');">
+                      <button type="submit" class="btn btn-ghost btn-sm">Deactivate</button>
+                    </form>
+                    <form class="inline-form" th:if="${u.id != currentUser.id and !u.active}"
+                          th:action="@{/admin/users/{id}/activate(id=${u.id})}" method="post">
+                      <button type="submit" class="btn btn-ghost btn-sm">Activate</button>
+                    </form>
+                    <a class="btn btn-secondary btn-sm" th:href="@{/admin/users/{id}/edit(id=${u.id})}">Edit</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

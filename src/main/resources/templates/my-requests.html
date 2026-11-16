@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('My requests')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('my-requests')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Requests', 'My requests')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">My requests</h1>
+          <p class="page-subtitle">Everything you have saved or submitted, newest first.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/requests/new}">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          New request
+        </a>
+      </div>
+
+      <div class="alert alert-success" th:if="${successMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        <div><strong>Done</strong><span th:text="${successMessage}">Request submitted.</span></div>
+      </div>
+      <div class="alert alert-info" th:if="${infoMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <div><strong>Notice</strong><span th:text="${infoMessage}">Message.</span></div>
+      </div>
+      <div class="alert alert-danger" th:if="${filterError}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Check the filters</strong><span th:text="${filterError}">Error.</span></div>
+      </div>
+
+      <section class="card">
+        <form class="filter-bar" th:action="@{/requests}" method="get">
+          <div class="field grow">
+            <label class="label" for="q">Search</label>
+            <input id="q" name="q" type="search" class="input" th:value="${qFilter}" maxlength="100"
+                   placeholder="Title or reference, e.g. PF-00012">
+          </div>
+          <div class="field">
+            <label class="label" for="status">Status</label>
+            <select id="status" name="status" class="select">
+              <option value="">All statuses</option>
+              <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}"
+                      th:selected="${s.name() == statusFilter}">Draft</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="category">Category</label>
+            <select id="category" name="category" class="select">
+              <option value="">All categories</option>
+              <option th:each="c : ${categories}" th:value="${c}" th:text="${c.label}"
+                      th:selected="${c.name() == categoryFilter}">Hardware</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="from">Created from</label>
+            <input id="from" name="from" type="date" class="input" th:value="${fromFilter}">
+          </div>
+          <div class="field">
+            <label class="label" for="to">Created to</label>
+            <input id="to" name="to" type="date" class="input" th:value="${toFilter}">
+          </div>
+          <button type="submit" class="btn btn-secondary">Filter</button>
+          <a class="btn btn-ghost" th:href="@{/requests}">Clear</a>
+        </form>
+
+        <div class="card-header">
+          <p class="card-sub"
+             th:text="${requestsPage.totalElements} + (${requestsPage.totalElements} == 1 ? ' request' : ' requests') + (${filtering} ? ' match your filters' : '')">0 requests</p>
+        </div>
+
+        <!-- Nothing submitted yet -->
+        <div class="empty" th:if="${requestsPage.totalElements == 0 and !filtering}">
+          <div class="empty-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+          </div>
+          <h3>No requests yet</h3>
+          <p>When you submit a purchase or expense request, it will appear here.</p>
+          <a class="btn btn-primary mt-4" th:href="@{/requests/new}">Create your first request</a>
+        </div>
+
+        <!-- Filters matched nothing -->
+        <div class="empty" th:if="${requestsPage.totalElements == 0 and filtering and filterError == null}">
+          <div class="empty-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </div>
+          <h3>No matching requests</h3>
+          <p>Try different words or clear the filters.</p>
+          <a class="btn btn-secondary mt-4" th:href="@{/requests}">Clear filters</a>
+        </div>
+
+        <div class="table-wrap" th:unless="${requestsPage.totalElements == 0}">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th class="num">Amount (INR)</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="r : ${requests}">
+                <td><a class="ref-link" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.reference}">PF-00001</a></td>
+                <td class="title-cell">
+                  <a class="table-link" th:href="@{/requests/{id}(id=${r.id})}" th:text="${r.title}">Title</a>
+                  <span class="badge" th:if="${r.priority.name() != 'NORMAL'}" th:classappend="${r.priority.badgeClass}" th:text="${r.priority.label}">Urgent</span>
+                </td>
+                <td th:text="${r.category.label}">Hardware</td>
+                <td class="num" th:text="${@money.format(r.amount, 2)}">₹0.00</td>
+                <td th:text="${r.submittedAt != null} ? ${#temporals.format(r.submittedAt, 'dd MMM yyyy')} : '—'">—</td>
+                <td><span class="badge" th:classappend="${r.status.badgeClass}" th:text="${r.status.label}">Pending approval</span></td>
+                <td class="row-actions">
+                  <a class="btn btn-ghost btn-sm" th:if="${r.status.name() == 'DRAFT'}" th:href="@{/requests/{id}/edit(id=${r.id})}">Edit</a>
+                  <a class="btn btn-secondary btn-sm" th:href="@{/requests/{id}(id=${r.id})}">View</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager" th:if="${requestsPage.totalElements > 0}">
+          <span class="small"
+                th:text="'Showing ' + ${requestsPage.number * requestsPage.size + 1} + '–' + ${requestsPage.number * requestsPage.size + requestsPage.numberOfElements} + ' of ' + ${requestsPage.totalElements}">Showing 1–10 of 23</span>
+          <div class="actions-cell">
+            <a class="btn btn-secondary btn-sm" th:if="${requestsPage.hasPrevious()}"
+               th:href="@{/requests(q=${qFilter}, status=${statusFilter}, category=${categoryFilter}, from=${fromFilter}, to=${toFilter}, page=${requestsPage.number - 1})}">Previous</a>
+            <a class="btn btn-secondary btn-sm" th:if="${requestsPage.hasNext()}"
+               th:href="@{/requests(q=${qFilter}, status=${statusFilter}, category=${categoryFilter}, from=${fromFilter}, to=${toFilter}, page=${requestsPage.number + 1})}">Next</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Request problem')}"></head>
+<body>
+<div class="app">
+  <aside th:replace="~{layout :: sidebar('')}"></aside>
+  <div class="main">
+    <header th:replace="~{layout :: topbar('PolicyFlow', 'Error')}"></header>
+    <main th:replace="~{error/error-content :: content(${status}, 'We could not process that request', 'The address or data sent was not valid. Please go back and try again.')}"></main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

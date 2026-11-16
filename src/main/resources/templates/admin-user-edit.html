@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Edit user')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('admin-users')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Administration', 'Edit user')}"></header>
+
+    <main class="content">
+      <a class="back-link" th:href="@{/admin/users}">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        Back to users
+      </a>
+
+      <div class="page-header">
+        <div>
+          <div class="title-row">
+            <h1 class="page-title" th:text="${target.fullName}">Name</h1>
+            <span class="badge badge-success" th:if="${target.active}">Active</span>
+            <span class="badge badge-neutral" th:unless="${target.active}">Inactive</span>
+          </div>
+          <p class="page-subtitle" th:text="${target.email}">email</p>
+        </div>
+      </div>
+
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Not saved</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <div class="form-layout">
+        <form class="card" th:action="@{/admin/users/{id}/edit(id=${target.id})}" th:object="${userForm}" method="post" novalidate data-submit-once>
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Profile and access</h2>
+              <p class="card-sub">Changes take effect on the user's next page request.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-danger" th:if="${#fields.hasErrors('*')}" style="margin-bottom: var(--space-5);">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <div><strong>Please fix the highlighted fields</strong>Your changes have not been saved.</div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field span-2">
+                <label class="label" for="fullName">Full name</label>
+                <input id="fullName" type="text" class="input" th:field="*{fullName}" maxlength="120"
+                       th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid'">
+                <span class="error-text" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></span>
+              </div>
+
+              <div class="field" th:unless="${isSelf}">
+                <label class="label" for="role">Role</label>
+                <select id="role" class="select" th:field="*{role}"
+                        th:classappend="${#fields.hasErrors('role')} ? 'is-invalid'">
+                  <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}">Employee</option>
+                </select>
+                <span class="error-text" th:if="${#fields.hasErrors('role')}" th:errors="*{role}"></span>
+              </div>
+              <div class="field" th:if="${isSelf}">
+                <span class="label">Role</span>
+                <div><span class="badge badge-primary" th:text="${target.role.label}">Administrator</span></div>
+                <span class="hint">You cannot change your own role.</span>
+                <input type="hidden" th:field="*{role}">
+              </div>
+
+              <div class="field">
+                <label class="label" for="departmentId">Department</label>
+                <select id="departmentId" class="select" th:field="*{departmentId}"
+                        th:classappend="${#fields.hasErrors('departmentId')} ? 'is-invalid'">
+                  <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}">Engineering</option>
+                  <option th:if="${!target.department.active}" th:value="${target.department.id}"
+                          th:text="${target.department.name + ' (inactive)'}">Old department</option>
+                </select>
+                <span class="error-text" th:if="${#fields.hasErrors('departmentId')}" th:errors="*{departmentId}"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a class="btn btn-secondary" th:href="@{/admin/users}">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save changes</button>
+          </div>
+        </form>
+
+        <div class="dash-side">
+          <section class="card" th:unless="${isSelf}">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Reset password</h2>
+                <p class="card-sub">The user must change it at next sign in.</p>
+              </div>
+            </div>
+            <form th:action="@{/admin/users/{id}/reset-password(id=${target.id})}" method="post">
+              <div class="card-body">
+                <div class="field">
+                  <label class="label" for="temporaryPassword">Temporary password</label>
+                  <input id="temporaryPassword" name="temporaryPassword" type="password" class="input"
+                         autocomplete="new-password" maxlength="128">
+                  <span class="hint">At least 8 characters with a letter and a digit.</span>
+                </div>
+                <div class="decision-actions">
+                  <button type="submit" class="btn btn-secondary">Set temporary password</button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <section class="card" th:unless="${isSelf}">
+            <div class="card-header">
+              <h2 class="card-title">Access</h2>
+            </div>
+            <div class="card-body">
+              <form th:if="${target.active}" th:action="@{/admin/users/{id}/deactivate(id=${target.id})}" method="post"
+                    onsubmit="return confirm('Deactivate this user?');">
+                <p class="text-muted">A deactivated user can no longer sign in or use protected pages.</p>
+                <div class="decision-actions">
+                  <button type="submit" class="btn btn-danger">Deactivate user</button>
+                </div>
+              </form>
+              <form th:unless="${target.active}" th:action="@{/admin/users/{id}/activate(id=${target.id})}" method="post">
+                <p class="text-muted">This user is inactive and cannot sign in.</p>
+                <div class="decision-actions">
+                  <button type="submit" class="btn btn-primary">Activate user</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <section class="card" th:if="${isSelf}">
+            <div class="card-body">
+              <div class="alert alert-info">
+                <div><strong>This is your account</strong>You cannot deactivate yourself or change your own role. Use <em>Change password</em> in your profile menu to change your password.</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

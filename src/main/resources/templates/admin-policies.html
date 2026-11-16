@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Policies')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('admin-policies')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Administration', 'Policies')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Approval policies</h1>
+          <p class="page-subtitle">Rules that decide who must approve a request. Changes apply to new requests only.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/admin/policies/new}">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          New policy
+        </a>
+      </div>
+
+      <div class="alert alert-success" th:if="${successMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        <div><strong>Done</strong><span th:text="${successMessage}">Saved.</span></div>
+      </div>
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Not saved</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <div class="grid grid-2">
+
+        <!-- Policy health -->
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Policy health</h2>
+              <p class="card-sub">Checks the amount ranges of policies that apply to every category and department.</p>
+            </div>
+          </div>
+          <div class="card-body stack">
+            <div class="alert alert-success" th:if="${coverage.healthy}">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+              <div><strong>All amounts are covered</strong>Every request amount matches at least one active general policy.</div>
+            </div>
+
+            <div class="alert alert-warning" th:unless="${coverage.generalPolicyPresent}">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              <div><strong>No active general policy</strong>Requests that match no specific policy are routed to the Department Head.</div>
+            </div>
+
+            <div class="alert alert-warning" th:each="g : ${coverage.gaps}">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              <div>
+                <strong>Gap in coverage</strong>
+                <span th:if="${g.openEnded}">
+                  Amounts from <strong th:text="${@money.format(g.from, 2)}">₹0.00</strong> and above have no general policy.
+                </span>
+                <span th:unless="${g.openEnded}">
+                  Amounts from <strong th:text="${@money.format(g.from, 2)}">₹0.00</strong> up to
+                  <strong th:text="${@money.format(g.to, 2)}">₹0.00</strong> (not including) have no general policy.
+                </span>
+                Requests in this range that match no other policy go to the Department Head.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Routing preview -->
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Routing preview</h2>
+              <p class="card-sub">See who would approve a request, using the live policies.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <form class="filter-grid" th:action="@{/admin/policies}" method="get">
+              <div class="field">
+                <label class="label" for="previewAmount">Amount (INR)</label>
+                <input id="previewAmount" name="previewAmount" type="text" inputmode="decimal" class="input"
+                       th:value="${previewAmount}" placeholder="e.g. 85000">
+              </div>
+              <div class="field">
+                <label class="label" for="previewCategory">Category</label>
+                <select id="previewCategory" name="previewCategory" class="select">
+                  <option value="">Choose a category</option>
+                  <option th:each="c : ${categories}" th:value="${c}" th:text="${c.label}"
+                          th:selected="${previewCategory == c}">Hardware</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="previewDepartmentId">Requester's department</label>
+                <select id="previewDepartmentId" name="previewDepartmentId" class="select">
+                  <option value="">Not specified</option>
+                  <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}"
+                          th:selected="${previewDepartmentId != null and previewDepartmentId == d.id}">Engineering</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="previewPriority">Priority</label>
+                <select id="previewPriority" name="previewPriority" class="select">
+                  <option th:each="p : ${priorities}" th:value="${p}" th:text="${p.label}"
+                          th:selected="${previewPriority != null ? previewPriority == p : p.name() == 'NORMAL'}">Normal</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-secondary">Check routing</button>
+            </form>
+
+            <div class="alert alert-danger" th:if="${previewError}" style="margin-top: var(--space-4);">
+              <div><span th:text="${previewError}">Error.</span></div>
+            </div>
+
+            <div class="preview-result" th:if="${preview != null}">
+              <div>
+                <div class="small">Approval chain, in order</div>
+                <div class="chip-row" style="margin-top: var(--space-2);">
+                  <span class="badge badge-primary" th:each="r : ${preview.approverRoles}" th:text="${r.label}">Manager</span>
+                </div>
+              </div>
+              <div class="alert alert-warning" th:if="${preview.fallbackUsed}">
+                <div><strong>Fallback applied</strong><span th:text="${preview.reason}">Reason</span></div>
+              </div>
+              <div class="small" th:unless="${preview.fallbackUsed}">
+                Decided by:
+                <span th:each="m, stat : ${preview.matchedPolicies}">
+                  <strong th:text="${m.name}">Policy</strong><span th:unless="${stat.last}">, </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Policy list -->
+      <section class="card mt-6">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">All policies</h2>
+            <p class="card-sub">
+              A request needs the approvers of <strong>every</strong> matching policy. Amount ranges include the minimum and exclude the maximum.
+            </p>
+          </div>
+        </div>
+
+        <div class="empty" th:if="${#lists.isEmpty(policies)}">
+          <h3>No policies yet</h3>
+          <p>Without policies, every request is routed to the Department Head.</p>
+          <a class="btn btn-primary mt-4" th:href="@{/admin/policies/new}">Create a policy</a>
+        </div>
+
+        <div class="table-wrap" th:unless="${#lists.isEmpty(policies)}">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Policy</th>
+                <th>Applies when</th>
+                <th>Required approvers</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="p : ${policies}">
+                <td class="title-cell">
+                  <div class="cell-title" th:text="${p.name}">Policy name</div>
+                  <div class="cell-sub" th:if="${p.description != null}" th:text="${p.description}">Description</div>
+                </td>
+                <td>
+                  <div class="cell-title">
+                    <span th:text="${@money.format(p.minAmount, 2)}">₹0.00</span>
+                    <span th:if="${p.maxAmount != null}">to below <span th:text="${@money.format(p.maxAmount, 2)}">₹10,000.00</span></span>
+                    <span th:if="${p.maxAmount == null}">and above</span>
+                  </div>
+                  <div class="cell-sub">
+                    <span th:text="${p.category != null} ? ${p.category.label} : 'Any category'">Any category</span>
+                    ·
+                    <span th:text="${p.priority != null} ? ${p.priority.label} : 'Any priority'">Any priority</span>
+                    ·
+                    <span th:text="${p.department != null} ? ${p.department.name} : 'Any department'">Any department</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="chip-row">
+                    <span class="badge badge-primary" th:each="r : ${p.approverRolesInOrder}" th:text="${r.label}">Manager</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-success" th:if="${p.active}">Active</span>
+                  <span class="badge badge-neutral" th:unless="${p.active}">Disabled</span>
+                </td>
+                <td>
+                  <div class="actions-cell">
+                    <form class="inline-form" th:if="${p.active}"
+                          th:action="@{/admin/policies/{id}/deactivate(id=${p.id})}" method="post"
+                          onsubmit="return confirm('Disable this policy? New requests will no longer use it. Requests already in progress keep their approval chain.');">
+                      <input type="hidden" name="version" th:value="${p.version}">
+                      <button type="submit" class="btn btn-ghost btn-sm">Disable</button>
+                    </form>
+                    <form class="inline-form" th:unless="${p.active}"
+                          th:action="@{/admin/policies/{id}/activate(id=${p.id})}" method="post">
+                      <input type="hidden" name="version" th:value="${p.version}">
+                      <button type="submit" class="btn btn-ghost btn-sm">Enable</button>
+                    </form>
+                    <a class="btn btn-secondary btn-sm" th:href="@{/admin/policies/{id}/edit(id=${p.id})}">Edit</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

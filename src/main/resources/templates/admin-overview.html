@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Administration')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('admin')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Administration', 'Overview')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Overview</h1>
+          <p class="page-subtitle">A live view of requests, people and policies across the company.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-warning" th:if="${overview.stuckCount > 0}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <div>
+          <strong>Stuck requests</strong>
+          <span th:text="${overview.stuckCount} + (${overview.stuckCount} == 1 ? ' request is' : ' requests are')">1 request is</span>
+          waiting for an approver who does not exist.
+          <a th:href="@{/admin/stuck}">Review</a>
+        </div>
+      </div>
+
+      <div class="grid grid-4">
+        <article class="card kpi">
+          <div class="kpi-head">
+            <span class="kpi-label">Total requests</span>
+            <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span>
+          </div>
+          <div class="kpi-value" th:text="${overview.totalRequests}">0</div>
+          <div class="kpi-foot">In every status</div>
+        </article>
+
+        <article class="card kpi">
+          <div class="kpi-head">
+            <span class="kpi-label">Pending approval</span>
+            <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          </div>
+          <div class="kpi-value" th:text="${overview.pendingApproval}">0</div>
+          <div class="kpi-foot">With approvers now</div>
+        </article>
+
+        <article class="card kpi" th:classappend="${overview.stuckCount > 0} ? 'is-warn'">
+          <div class="kpi-head">
+            <span class="kpi-label">Stuck requests</span>
+            <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+          </div>
+          <div class="kpi-value" th:text="${overview.stuckCount}">0</div>
+          <div class="kpi-foot">
+            <a th:if="${overview.stuckCount > 0}" th:href="@{/admin/stuck}">Review and resolve</a>
+            <span th:unless="${overview.stuckCount > 0}">Nobody is blocked</span>
+          </div>
+        </article>
+
+        <article class="card kpi">
+          <div class="kpi-head">
+            <span class="kpi-label">Approved value</span>
+            <span class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8h6M9 11h6M9.5 8c3.5 0 3.5 5 0 5H9l5 4"/></svg></span>
+          </div>
+          <div class="kpi-value" th:text="${@money.format(overview.approvedValue, 0)}">₹0</div>
+          <div class="kpi-foot">Fully approved requests</div>
+        </article>
+      </div>
+
+      <div class="dash-grid mt-6">
+
+        <div class="dash-side">
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Requests by status</h2>
+                <p class="card-sub">Share of all requests</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="cat-list">
+                <div th:each="s : ${overview.statusCounts}">
+                  <div class="cat-head">
+                    <span class="cat-name"><span class="badge" th:classappend="${s.badgeClass}" th:text="${s.label}">Draft</span></span>
+                    <span class="cat-amount" th:text="${s.count} + ' (' + ${s.percent} + '%)'">0 (0%)</span>
+                  </div>
+                  <div class="cat-bar" th:if="${s.count > 0}" role="img"
+                       th:attr="aria-label=${s.label + ': ' + s.count + ' requests'}">
+                    <span th:style="'width:' + ${s.percent} + '%'"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Recent activity</h2>
+                <p class="card-sub">The ten newest audit entries</p>
+              </div>
+              <a class="btn btn-secondary btn-sm" th:href="@{/admin/audit}">Open audit log</a>
+            </div>
+            <div class="card-body">
+              <p class="text-muted" th:if="${#lists.isEmpty(overview.recentActivity)}">Nothing has been recorded yet.</p>
+              <ol class="history-list" th:unless="${#lists.isEmpty(overview.recentActivity)}">
+                <li class="history-item" th:each="e : ${overview.recentActivity}">
+                  <div class="history-head">
+                    <strong th:text="${e.actionLabel}">Request approved</strong>
+                    <span class="history-meta" th:text="${#temporals.format(e.createdAt, 'dd MMM, HH:mm')}">—</span>
+                  </div>
+                  <div class="history-meta" th:text="${e.actorEmail}">actor</div>
+                  <p class="history-comment" th:if="${e.details != null}" th:text="${e.details}">Details</p>
+                </li>
+              </ol>
+            </div>
+          </section>
+        </div>
+
+        <div class="dash-side">
+          <section class="card">
+            <div class="card-header"><h2 class="card-title">Waiting on approvers</h2></div>
+            <div class="card-body">
+              <ul class="kv-list">
+                <li th:each="r : ${overview.pendingByRole}">
+                  <span th:text="${r.label}">Manager</span>
+                  <strong th:text="${r.count}">0</strong>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">People</h2>
+                <p class="card-sub"><span th:text="${overview.activeUsers}">0</span> active of <span th:text="${overview.totalUsers}">0</span></p>
+              </div>
+              <a class="btn btn-secondary btn-sm" th:href="@{/admin/users}">Manage</a>
+            </div>
+            <div class="card-body">
+              <ul class="kv-list">
+                <li th:each="u : ${overview.usersByRole}">
+                  <span th:text="${u.label}">Employee</span>
+                  <strong th:text="${u.active} + ' / ' + ${u.total}">0 / 0</strong>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Policies</h2>
+                <p class="card-sub"><span th:text="${overview.activePolicies}">0</span> active of <span th:text="${overview.totalPolicies}">0</span></p>
+              </div>
+              <a class="btn btn-secondary btn-sm" th:href="@{/admin/policies}">Manage</a>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

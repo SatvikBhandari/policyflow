@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<main class="content" th:fragment="content(code, heading, message)">
+  <div class="error-page">
+    <div class="error-code" th:text="${code}">404</div>
+    <h1 class="page-title" th:text="${heading}">Heading</h1>
+    <p class="page-subtitle" th:text="${message}">Message</p>
+    <div class="flex gap-3 error-actions">
+      <a class="btn btn-primary" th:href="@{/}">Go to dashboard</a>
+      <a class="btn btn-secondary" th:href="@{/requests}"
+         th:if="${currentUser != null and currentUser.role.name() != 'ADMIN'}">My requests</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

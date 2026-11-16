@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${areaTitle})}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar(${activeNav})}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Your area', ${areaTitle})}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title" th:text="${areaTitle}">Area title</h1>
+          <p class="page-subtitle" th:text="${areaSummary}">Summary</p>
+        </div>
+      </div>
+
+      <div class="form-layout">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Planned for this area</h2>
+              <p class="card-sub">These features are not built yet.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <ul class="info-list">
+              <li th:each="feature : ${features}" th:text="${feature}">Feature</li>
+            </ul>
+            <div class="alert alert-info" style="margin-top: var(--space-5);">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+              <div><strong>Placeholder page</strong>This page confirms that role-based access works. The working features arrive in a later module.</div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="card">
+          <div class="card-header">
+            <h2 class="card-title">Your access</h2>
+          </div>
+          <div class="card-body">
+            <ul class="info-list">
+              <li>Signed in as <strong th:text="${currentUser.fullName}">Name</strong>.</li>
+              <li>Role: <span class="badge badge-primary" th:text="${currentUser.roleLabel}">Role</span></li>
+              <li>Only users with this role can open this area. Everyone else sees an access-denied page.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Access denied')}"></head>
+<body>
+<div class="app">
+  <aside th:replace="~{layout :: sidebar('')}"></aside>
+  <div class="main">
+    <header th:replace="~{layout :: topbar('PolicyFlow', 'Access denied')}"></header>
+    <main th:replace="~{error/error-content :: content('403', 'Access denied', 'You do not have permission to open this page, or your session or form has expired. Sign in again and retry. If you signed in as a different user in another tab or window of this browser, that replaced this session.')}"></main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

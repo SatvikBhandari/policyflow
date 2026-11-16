@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${areaTitle})}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar(${activeNav})}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Approvals', ${areaTitle})}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title" th:text="${areaTitle}">Manager approvals</h1>
+          <p class="page-subtitle">Requests waiting for your decision. Urgent ones first, then oldest first.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-success" th:if="${successMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        <div><strong>Done</strong><span th:text="${successMessage}">Saved.</span></div>
+      </div>
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Not saved</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <section class="card">
+        <form class="filter-bar" th:action="@{${areaPath}}" method="get">
+          <div class="field grow">
+            <label class="label" for="q">Search</label>
+            <input id="q" name="q" type="search" class="input" th:value="${qFilter}" maxlength="100"
+                   placeholder="Reference, title, requester or department">
+          </div>
+          <div class="field">
+            <label class="label" for="category">Category</label>
+            <select id="category" name="category" class="select">
+              <option value="">All categories</option>
+              <option th:each="c : ${categories}" th:value="${c}" th:text="${c.label}"
+                      th:selected="${c.name() == categoryFilter}">Hardware</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-secondary">Filter</button>
+          <a class="btn btn-ghost" th:href="@{${areaPath}}">Clear</a>
+        </form>
+
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Awaiting your decision</h2>
+            <p class="card-sub"
+               th:text="${queuePage.totalElements} + (${queuePage.totalElements} == 1 ? ' request' : ' requests') + (${filtering} ? ' match your filters' : '')">0 requests</p>
+          </div>
+        </div>
+
+        <div class="empty" th:if="${queuePage.totalElements == 0 and !filtering}">
+          <div class="empty-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+          </div>
+          <h3>You're all caught up</h3>
+          <p>No requests are waiting for your decision right now.</p>
+        </div>
+
+        <div class="empty" th:if="${queuePage.totalElements == 0 and filtering}">
+          <div class="empty-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </div>
+          <h3>No matching requests</h3>
+          <p>Try different words or clear the filters.</p>
+          <a class="btn btn-secondary mt-4" th:href="@{${areaPath}}">Clear filters</a>
+        </div>
+
+        <div class="table-wrap" th:unless="${queuePage.totalElements == 0}">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Request</th>
+                <th>Requester</th>
+                <th class="num">Amount (INR)</th>
+                <th>Stage</th>
+                <th>Submitted</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="item : ${queue}">
+                <td><a class="ref-link" th:href="${areaPath + '/requests/' + item.requestId}" th:text="${item.reference}">PF-00001</a></td>
+                <td class="title-cell">
+                  <a class="table-link" th:href="${areaPath + '/requests/' + item.requestId}" th:text="${item.title}">Title</a>
+                  <div class="cell-sub">
+                    <span th:text="${item.categoryLabel}">Hardware</span>
+                    <span class="badge" th:if="${item.priority.name() != 'NORMAL'}" th:classappend="${item.priority.badgeClass}" th:text="${item.priority.label}">Urgent</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="cell-title" th:text="${item.requesterName}">Name</div>
+                  <div class="cell-sub" th:text="${item.departmentName}">Department</div>
+                </td>
+                <td class="num" th:text="${@money.format(item.amount, 2)}">₹0.00</td>
+                <td><span class="badge badge-warning" th:text="'Step ' + ${item.stepNumber} + ' of ' + ${item.totalSteps}">Step 1 of 2</span></td>
+                <td th:text="${item.submittedAt != null} ? ${#temporals.format(item.submittedAt, 'dd MMM yyyy')} : '—'">—</td>
+                <td class="row-actions"><a class="btn btn-primary btn-sm" th:href="${areaPath + '/requests/' + item.requestId}">Review</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager" th:if="${queuePage.totalElements > 0}">
+          <span class="small"
+                th:text="'Showing ' + ${queuePage.number * queuePage.size + 1} + '–' + ${queuePage.number * queuePage.size + queuePage.numberOfElements} + ' of ' + ${queuePage.totalElements}">Showing 1–20 of 24</span>
+          <div class="actions-cell">
+            <a class="btn btn-secondary btn-sm" th:if="${queuePage.hasPrevious()}"
+               th:href="@{${areaPath}(q=${qFilter}, category=${categoryFilter}, page=${queuePage.number - 1})}">Previous</a>
+            <a class="btn btn-secondary btn-sm" th:if="${queuePage.hasNext()}"
+               th:href="@{${areaPath}(q=${qFilter}, category=${categoryFilter}, page=${queuePage.number + 1})}">Next</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card mt-6">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Recently decided by you</h2>
+            <p class="card-sub">Your last ten approvals and rejections</p>
+          </div>
+        </div>
+
+        <div class="empty" th:if="${#lists.isEmpty(decided)}">
+          <p>You have not decided any requests yet.</p>
+        </div>
+
+        <div class="table-wrap" th:unless="${#lists.isEmpty(decided)}">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Request</th>
+                <th>Your decision</th>
+                <th>Request status</th>
+                <th>Decided</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="d : ${decided}">
+                <td><a class="ref-link" th:href="${areaPath + '/requests/' + d.requestId}" th:text="${d.reference}">PF-00001</a></td>
+                <td class="title-cell">
+                  <span class="table-link" th:text="${d.title}">Title</span>
+                  <div class="cell-sub" th:if="${d.comment != null}" th:text="${d.comment}">Comment</div>
+                </td>
+                <td><span class="badge" th:classappend="${d.actionBadgeClass}" th:text="${d.actionLabel}">Approved</span></td>
+                <td><span class="badge" th:classappend="${d.requestStatusBadgeClass}" th:text="${d.requestStatusLabel}">Pending approval</span></td>
+                <td th:text="${#temporals.format(d.decidedAt, 'dd MMM yyyy, HH:mm')}">—</td>
+                <td class="row-actions"><a class="btn btn-secondary btn-sm" th:href="${areaPath + '/requests/' + d.requestId}">View</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

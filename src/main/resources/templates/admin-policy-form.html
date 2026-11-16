@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${pageTitle})}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('admin-policies')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Administration', ${pageTitle})}"></header>
+
+    <main class="content">
+      <a class="back-link" th:href="@{/admin/policies}">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        Back to policies
+      </a>
+
+      <div class="page-header">
+        <div>
+          <div class="title-row">
+            <h1 class="page-title" th:text="${pageTitle}">New policy</h1>
+            <th:block th:if="${editing}">
+              <span class="badge badge-success" th:if="${target.active}">Active</span>
+              <span class="badge badge-neutral" th:unless="${target.active}">Disabled</span>
+            </th:block>
+          </div>
+          <p class="page-subtitle" th:if="${editing}">Changes apply to new requests only. Requests already in progress keep their approval chain.</p>
+          <p class="page-subtitle" th:unless="${editing}">Define when this policy applies and who must approve.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-danger" th:if="${errorMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>Not saved</strong><span th:text="${errorMessage}">Error.</span></div>
+      </div>
+
+      <div class="form-layout">
+        <form class="card" th:action="@{${formAction}}" th:object="${policyForm}" method="post" novalidate data-submit-once>
+          <input type="hidden" th:field="*{version}">
+
+          <div class="card-body">
+            <div class="alert alert-danger" th:if="${#fields.hasErrors('*')}" style="margin-bottom: var(--space-5);">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <div><strong>Please fix the highlighted fields</strong>The policy has not been saved yet.</div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field span-2">
+                <label class="label" for="name">Policy name</label>
+                <input id="name" type="text" class="input" th:field="*{name}" maxlength="120"
+                       placeholder="e.g. High value: manager, finance and department head"
+                       th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'">
+                <span class="error-text" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></span>
+              </div>
+
+              <div class="field span-2">
+                <label class="label" for="description">Description (optional)</label>
+                <textarea id="description" class="textarea" rows="3" th:field="*{description}" maxlength="500"
+                          placeholder="Explain what this policy is for."
+                          th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'"></textarea>
+                <span class="error-text" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></span>
+              </div>
+
+              <div class="field">
+                <label class="label" for="minAmount">Minimum amount (INR, included)</label>
+                <div class="input-group">
+                  <span class="prefix">₹</span>
+                  <input id="minAmount" type="number" step="0.01" min="0" inputmode="decimal" class="input"
+                         th:field="*{minAmount}" th:classappend="${#fields.hasErrors('minAmount')} ? 'is-invalid'">
+                </div>
+                <span class="error-text" th:if="${#fields.hasErrors('minAmount')}" th:errors="*{minAmount}"></span>
+              </div>
+
+              <div class="field">
+                <label class="label" for="maxAmount">Maximum amount (INR, not included)</label>
+                <div class="input-group">
+                  <span class="prefix">₹</span>
+                  <input id="maxAmount" type="number" step="0.01" min="0.01" inputmode="decimal" class="input"
+                         th:field="*{maxAmount}" placeholder="No upper limit"
+                         th:classappend="${#fields.hasErrors('maxAmount')} ? 'is-invalid'">
+                </div>
+                <span class="hint">Leave empty for no upper limit.</span>
+                <span class="error-text" th:if="${#fields.hasErrors('maxAmount')}" th:errors="*{maxAmount}"></span>
+              </div>
+
+              <div class="field">
+                <label class="label" for="category">Category</label>
+                <select id="category" class="select" th:field="*{category}"
+                        th:classappend="${#fields.hasErrors('category')} ? 'is-invalid'">
+                  <option value="">Any category</option>
+                  <option th:each="c : ${categories}" th:value="${c}" th:text="${c.label}">Hardware</option>
+                </select>
+                <span class="error-text" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></span>
+              </div>
+
+              <div class="field">
+                <label class="label" for="departmentId">Requester's department</label>
+                <select id="departmentId" class="select" th:field="*{departmentId}"
+                        th:classappend="${#fields.hasErrors('departmentId')} ? 'is-invalid'">
+                  <option value="">Any department</option>
+                  <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}">Engineering</option>
+                  <option th:if="${editing and target.department != null and !target.department.active}"
+                          th:value="${target.department.id}" th:text="${target.department.name + ' (inactive)'}">Old department</option>
+                </select>
+                <span class="error-text" th:if="${#fields.hasErrors('departmentId')}" th:errors="*{departmentId}"></span>
+              </div>
+
+              <div class="field">
+                <label class="label" for="priority">Priority</label>
+                <select id="priority" class="select" th:field="*{priority}"
+                        th:classappend="${#fields.hasErrors('priority')} ? 'is-invalid'">
+                  <option value="">Any priority</option>
+                  <option th:each="p : ${priorities}" th:value="${p}" th:text="${p.label}">Urgent</option>
+                </select>
+                <span class="hint">Leave on "Any priority" to apply to every request.</span>
+                <span class="error-text" th:if="${#fields.hasErrors('priority')}" th:errors="*{priority}"></span>
+              </div>
+
+              <div class="field span-2">
+                <span class="label">Required approvers</span>
+                <div class="check-group">
+                  <label class="check-item" th:each="r : ${approverChoices}">
+                    <input type="checkbox" th:field="*{approverRoles}" th:value="${r}">
+                    <span th:text="${r.label}">Manager</span>
+                  </label>
+                </div>
+                <span class="hint">Approval always runs in this order: Manager, Finance Officer, Department Head.</span>
+                <span class="error-text" th:if="${#fields.hasErrors('approverRoles')}" th:errors="*{approverRoles}"></span>
+              </div>
+
+              <div class="field span-2" th:unless="${editing}">
+                <label class="check-item">
+                  <input type="checkbox" th:field="*{active}">
+                  <span>Active: applies to new requests immediately</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a class="btn btn-secondary" th:href="@{/admin/policies}">Cancel</a>
+            <button type="submit" class="btn btn-primary" th:text="${editing} ? 'Save changes' : 'Create policy'">Save</button>
+          </div>
+        </form>
+
+        <aside class="card">
+          <div class="card-header"><h2 class="card-title">How policies work</h2></div>
+          <div class="card-body">
+            <ul class="info-list">
+              <li>Every <strong>active</strong> policy that matches a request adds its approvers. The request needs all of them.</li>
+              <li>Amount ranges <strong>include</strong> the minimum and <strong>exclude</strong> the maximum.</li>
+              <li>Managers and Department Heads approve for the requester's own department. Finance Officers can be from any department.</li>
+              <li>If no policy matches, the request goes to the Department Head.</li>
+              <li>Every change is recorded in the audit log.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Notifications')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('notifications')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Account', 'Notifications')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Notifications</h1>
+          <p class="page-subtitle" th:if="${unread > 0}"><span th:text="${unread}">0</span> unread</p>
+          <p class="page-subtitle" th:unless="${unread > 0}">You are all caught up.</p>
+        </div>
+        <form th:if="${unread > 0}" th:action="@{/notifications/read-all}" method="post">
+          <button type="submit" class="btn btn-secondary">Mark all as read</button>
+        </form>
+      </div>
+
+      <div class="alert alert-success" th:if="${successMessage}" style="margin-bottom: var(--space-6);">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+        <div><strong>Done</strong><span th:text="${successMessage}">Saved.</span></div>
+      </div>
+
+      <section class="card">
+        <div class="empty" th:if="${#lists.isEmpty(notifications.content)}">
+          <div class="empty-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+          </div>
+          <h3>No notifications yet</h3>
+          <p>You will be told here when a request needs your decision or when one of your requests moves on.</p>
+        </div>
+
+        <ul class="notif-list" th:unless="${#lists.isEmpty(notifications.content)}">
+          <li class="notif-item" th:each="n : ${notifications.content}" th:classappend="${!n.read} ? 'is-unread'">
+            <span class="notif-dot" th:classappend="${n.read} ? 'is-read'" aria-hidden="true"></span>
+            <div class="notif-body">
+              <div class="notif-head">
+                <span class="badge" th:classappend="${n.type.badgeClass}" th:text="${n.type.label}">Needs your decision</span>
+                <span class="small" th:text="${#temporals.format(n.createdAt, 'dd MMM yyyy, HH:mm')}">—</span>
+                <span class="sr-only" th:if="${!n.read}">Unread</span>
+              </div>
+              <p class="notif-message" th:text="${n.message}">Message</p>
+            </div>
+            <div class="actions-cell">
+              <form class="inline-form" th:if="${n.link != null}"
+                    th:action="@{/notifications/{id}/open(id=${n.id})}" method="post">
+                <button type="submit" class="btn btn-secondary btn-sm">Open</button>
+              </form>
+              <form class="inline-form" th:if="${!n.read}"
+                    th:action="@{/notifications/{id}/read(id=${n.id})}" method="post">
+                <button type="submit" class="btn btn-ghost btn-sm">Mark read</button>
+              </form>
+            </div>
+          </li>
+        </ul>
+
+        <div class="pager" th:if="${notifications.totalElements > 0}">
+          <span class="small"
+                th:text="'Showing ' + ${notifications.number * notifications.size + 1} + '–' + ${notifications.number * notifications.size + notifications.numberOfElements} + ' of ' + ${notifications.totalElements}">Showing 1–15 of 40</span>
+          <div class="actions-cell">
+            <a class="btn btn-secondary btn-sm" th:if="${notifications.hasPrevious()}"
+               th:href="@{/notifications(page=${notifications.number - 1})}">Previous</a>
+            <a class="btn btn-secondary btn-sm" th:if="${notifications.hasNext()}"
+               th:href="@{/notifications(page=${notifications.number + 1})}">Next</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>

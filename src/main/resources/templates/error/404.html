@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Not found')}"></head>
+<body>
+<div class="app">
+  <aside th:replace="~{layout :: sidebar('')}"></aside>
+  <div class="main">
+    <header th:replace="~{layout :: topbar('PolicyFlow', 'Not found')}"></header>
+    <main th:replace="~{error/error-content :: content('404', 'Page not found', 'The page or request you are looking for does not exist, or you do not have access to it.')}"></main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>
