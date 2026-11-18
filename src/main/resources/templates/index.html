@@ -11,17 +11,31 @@
 
     <main class="content">
 
-      <div class="page-header">
-        <div>
-          <h1 class="page-title"><span th:text="${greeting}">Good morning</span>, <span th:text="${firstName}">Aarav</span></h1>
-          <p class="page-subtitle" th:if="${requesterView}">Here is where your requests stand today.</p>
-          <p class="page-subtitle" th:unless="${requesterView}">Welcome to PolicyFlow administration.</p>
+      <!-- WELCOME BANNER -->
+      <section class="welcome-banner">
+        <div class="welcome-text">
+          <h1 class="welcome-title"><span th:text="${greeting}">Good morning</span>, <span th:text="${firstName}">Aarav</span>!</h1>
+          <p class="welcome-sub" th:if="${requesterView}">
+            You have <strong th:text="${summary.pendingApproval} + (${summary.pendingApproval == 1} ? ' request' : ' requests')">0 requests</strong>
+            waiting for approval and <strong th:text="${summary.drafts} + (${summary.drafts == 1} ? ' draft' : ' drafts')">0 drafts</strong> saved.
+            <span th:text="${summary.approved}">0</span> approved so far.
+          </p>
+          <p class="welcome-sub" th:unless="${requesterView}">Welcome to PolicyFlow administration.</p>
         </div>
-        <a class="btn btn-primary" th:if="${requesterView}" th:href="@{/requests/new}">
-          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-          New request
-        </a>
-      </div>
+        <div class="welcome-actions" th:if="${requesterView}">
+          <a class="btn btn-banner-primary" th:href="@{/requests/new}">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            New request
+          </a>
+          <a class="btn btn-banner-ghost" th:href="@{/requests}">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+            My requests
+          </a>
+        </div>
+        <div class="welcome-actions" th:unless="${requesterView}">
+          <a class="btn btn-banner-primary" th:href="@{/admin}">Open administration</a>
+        </div>
+      </section>
 
       <!-- ADMINISTRATOR VIEW -->
       <section class="card" th:unless="${requesterView}">
@@ -207,7 +221,7 @@
             <section class="card">
               <div class="card-header">
                 <div>
-                  <h2 class="card-title">Value by category</h2>
+                  <h2 class="card-title">Spend by category</h2>
                   <p class="card-sub">Excludes cancelled</p>
                 </div>
               </div>
@@ -215,17 +229,18 @@
                 <p class="text-muted" th:if="${#lists.isEmpty(summary.categories)}">
                   Spending by category appears once you submit a request.
                 </p>
-                <div class="cat-list" th:unless="${#lists.isEmpty(summary.categories)}">
-                  <div th:each="c : ${summary.categories}">
-                    <div class="cat-head">
-                      <span class="cat-name" th:text="${c.label}">Hardware</span>
-                      <span class="cat-amount" th:text="${@money.format(c.amount, 0)}">₹0</span>
-                    </div>
-                    <div class="cat-bar" role="img" th:attr="aria-label=${c.label + ': ' + c.percent + ' percent of total value'}">
-                      <span th:style="'width:' + ${c.percent} + '%'"></span>
-                    </div>
+                <th:block th:unless="${#lists.isEmpty(summary.categories)}">
+                  <div class="chart-box">
+                    <canvas id="categoryChart" role="img" aria-label="Donut chart of spend by category"></canvas>
                   </div>
-                </div>
+                  <ul class="chart-legend">
+                    <li th:each="c, st : ${summary.categories}">
+                      <span class="legend-dot" th:attr="data-i=${st.index}"></span>
+                      <span class="legend-name" th:text="${c.label}">Hardware</span>
+                      <span class="legend-val" th:text="${@money.format(c.amount, 0)} + ' · ' + ${c.percent} + '%'">₹0 · 0%</span>
+                    </li>
+                  </ul>
+                </th:block>
               </div>
             </section>
           </div>
@@ -236,5 +251,55 @@
   </div>
 </div>
 <div th:replace="~{layout :: scripts}"></div>
+
+<!-- Spend by category donut chart (Chart.js) -->
+<th:block th:if="${requesterView and !#lists.isEmpty(summary.categories)}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script th:inline="javascript">
+    (function () {
+      var canvas = document.getElementById('categoryChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+
+      var labels = /*[[${summary.categories.![label]}]]*/ ['Hardware', 'Travel'];
+      var amounts = /*[[${summary.categories.![amount]}]]*/ [60000, 35500];
+      var colors = ['#6240e8', '#3b82f6', '#22a35a', '#f59e0b', '#ef4444', '#8c7fff', '#14b8a6', '#9aa0b4'];
+
+      // match the legend dots to the chart slices
+      document.querySelectorAll('.legend-dot').forEach(function (dot) {
+        dot.style.background = colors[Number(dot.dataset.i) % colors.length];
+      });
+
+      var inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+
+      new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: amounts,
+            backgroundColor: labels.map(function (_, i) { return colors[i % colors.length]; }),
+            borderColor: '#ffffff',
+            borderWidth: 3,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) { return ' ' + ctx.label + ': ' + inr.format(ctx.parsed); }
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
+</th:block>
 </body>
+
 </html>

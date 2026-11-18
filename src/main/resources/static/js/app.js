@@ -91,4 +91,19 @@
     });
     setPasswordVisible(false);
   });
+
+  // Compact layout preference (Settings page). Saved in this browser only.
+  var compactToggle = document.getElementById('compactToggle');
+  try {
+    if (localStorage.getItem('pf-compact') === '1') {
+      body.classList.add('compact');
+      if (compactToggle) compactToggle.checked = true;
+    }
+  } catch (err) { /* storage blocked: ignore */ }
+  if (compactToggle) {
+    compactToggle.addEventListener('change', function () {
+      body.classList.toggle('compact', compactToggle.checked);
+      try { localStorage.setItem('pf-compact', compactToggle.checked ? '1' : '0'); } catch (err) { /* ignore */ }
+    });
+  }
 })();

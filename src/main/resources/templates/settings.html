@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Settings')}"></head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{layout :: sidebar('settings')}"></aside>
+
+  <div class="main">
+    <header th:replace="~{layout :: topbar('Account', 'Settings')}"></header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">Your profile, security and display preferences.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <!-- PROFILE -->
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Profile</h2>
+              <p class="card-sub">Managed by your administrator</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="settings-profile">
+              <div class="avatar avatar-lg" th:text="${currentUser.initials}">AS</div>
+              <div>
+                <strong class="settings-name" th:text="${profileName}">Aarav Sharma</strong>
+                <span class="badge badge-primary" th:text="${profileRole}">Employee</span>
+              </div>
+            </div>
+            <dl class="details-list">
+              <div>
+                <dt>Full name</dt>
+                <dd th:text="${profileName}">Aarav Sharma</dd>
+              </div>
+              <div>
+                <dt>Email</dt>
+                <dd th:text="${profileEmail}">aarav@example.com</dd>
+              </div>
+              <div>
+                <dt>Role</dt>
+                <dd th:text="${profileRole}">Employee</dd>
+              </div>
+              <div>
+                <dt>Department</dt>
+                <dd th:text="${profileDepartment}">Engineering</dd>
+              </div>
+              <div class="span-2" th:if="${memberSince != null}">
+                <dt>Member since</dt>
+                <dd th:text="${#temporals.format(memberSince, 'dd MMM yyyy')}">01 Jan 2026</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <div class="settings-side">
+
+          <!-- SECURITY -->
+          <section class="card">
+            <div class="card-header">
+              <h2 class="card-title">Security</h2>
+            </div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div>
+                  <strong>Password</strong>
+                  <p class="text-muted">Use at least 8 characters with a letter and a digit.</p>
+                </div>
+                <a class="btn btn-secondary btn-sm" th:href="@{/account/password}">Change</a>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <strong>Sign out</strong>
+                  <p class="text-muted">End your session on this device.</p>
+                </div>
+                <form th:action="@{/logout}" method="post">
+                  <button type="submit" class="btn btn-secondary btn-sm">Sign out</button>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <!-- PREFERENCES -->
+          <section class="card">
+            <div class="card-header">
+              <h2 class="card-title">Preferences</h2>
+            </div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div>
+                  <strong>Compact layout</strong>
+                  <p class="text-muted">Tighter spacing in tables and pages. Saved in this browser.</p>
+                </div>
+                <label class="switch" aria-label="Compact layout">
+                  <input type="checkbox" id="compactToggle">
+                  <span class="switch-track"></span>
+                </label>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <strong>Notifications</strong>
+                  <p class="text-muted">See approvals and updates on your requests.</p>
+                </div>
+                <a class="btn btn-secondary btn-sm" th:href="@{/notifications}">Open</a>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>
