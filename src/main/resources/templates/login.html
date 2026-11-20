@@ -40,11 +40,6 @@
             <div><strong>Signed out</strong>You have been signed out successfully.</div>
           </div>
 
-          <div class="alert alert-warning" th:if="${param.containsKey('expired')}" role="status">
-            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            <div><strong>Session expired</strong>Your session ended. Please sign in again.</div>
-          </div>
-
           <form class="login-form" th:action="@{/login}" method="post" data-submit-once>
             <div class="field">
               <label class="label" for="email">Email</label>
