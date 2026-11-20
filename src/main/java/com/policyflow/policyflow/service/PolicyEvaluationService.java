@@ -100,6 +100,47 @@ public class PolicyEvaluationService {
                         + (matched.size() == 1 ? " matching policy." : " matching policies."));
     }
 
+    /** Approver roles from lowest to highest. A requester's request is only ever approved by roles above their own. */
+    private static final List<Role> LADDER = List.of(Role.MANAGER, Role.FINANCE_OFFICER, Role.DEPARTMENT_HEAD);
+
+    /**
+     * Adjusts the policy chain for who is asking:
+     * <ul>
+     *   <li>Stages at or below the requester's own level are skipped (a Finance Officer's request does not
+     *       go to a Manager first, and nobody sits at a stage for their own level).</li>
+     *   <li>If nothing is left, the request goes to the next role up (a Manager's request goes to the
+     *       Finance Officer). The top role (Department Head) has nobody above, so a peer Department Head decides.</li>
+     * </ul>
+     * Employees and administrators are not in the ladder, so their chain is returned unchanged.
+     */
+    public PolicyEvaluation adjustForRequester(PolicyEvaluation evaluation, Role requesterRole) {
+        int rank = LADDER.indexOf(requesterRole);
+        if (rank < 0) {
+            return evaluation;
+        }
+
+        List<Role> kept = evaluation.getApproverRoles().stream()
+                .filter(role -> LADDER.indexOf(role) > rank)
+                .toList();
+
+        String note = "";
+        if (kept.isEmpty()) {
+            Role next = rank + 1 < LADDER.size() ? LADDER.get(rank + 1) : requesterRole;
+            kept = List.of(next);
+            note = " Requester is a " + requesterRole.getLabel() + ", so the request goes to the "
+                    + next.getLabel() + (next == requesterRole ? " (another one)." : ".");
+        } else if (kept.size() != evaluation.getApproverRoles().size()) {
+            note = " Requester is a " + requesterRole.getLabel()
+                    + ", so approval stages at or below that level were skipped.";
+        }
+
+        if (note.isEmpty()) {
+            return evaluation;
+        }
+        return new PolicyEvaluation(kept, evaluation.getMatchedPolicies(), evaluation.isFallbackUsed(),
+                evaluation.getReason() + note);
+    }
+
     /** Matching for a request of normal priority. */
     static boolean matches(ApprovalPolicy policy, BigDecimal amount,
                            RequestCategory category, Department department) {

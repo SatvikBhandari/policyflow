@@ -193,13 +193,66 @@ class ApprovalWorkflowTest {
     @Test
     void requesterCannotApproveTheirOwnRequest() {
         policy("WF manager", Role.MANAGER);
-        // A manager raises a request; the other manager in the department must approve it
+        // A manager raises a request that needs a Manager: it moves up to the Finance Officer
         User managerRequester = user("wf-manager-requester", Role.MANAGER, department);
         Long id = requestService.createAndSubmit(WorkflowFixtures.form("5000"), managerRequester).getId();
 
         assertThrows(ResourceNotFoundException.class, () -> approvalService.approve(id, managerRequester, "self"));
         assertFalse(queueIds(managerRequester).contains(id));
-        assertTrue(queueIds(manager).contains(id));
+        assertFalse(queueIds(manager).contains(id));   // a fellow manager is not the approver any more
+        assertTrue(queueIds(finance).contains(id));
+    }
+
+    @Test
+    void managerRequestWorksEvenWhenThereIsNoOtherManager() {
+        policy("WF manager", Role.MANAGER);
+        // A lone manager: nobody else holds the Manager role in this department
+        Department solo = departmentRepository.save(new Department("Workflow Solo", "WFSOLO"));
+        User loneManager = user("wf-lone-manager", Role.MANAGER, solo);
+
+        Request saved = requestService.createAndSubmit(WorkflowFixtures.form("5000"), loneManager);
+
+        assertEquals(List.of(Role.FINANCE_OFFICER),
+                reload(saved.getId()).getStages().stream().map(RequestStage::getApproverRole).toList());
+    }
+
+    @Test
+    void financeOfficerRequestGoesStraightToTheDepartmentHead() {
+        policy("WF three", Role.MANAGER, Role.FINANCE_OFFICER, Role.DEPARTMENT_HEAD);
+        User financeRequester = user("wf-finance-requester", Role.FINANCE_OFFICER, department);
+
+        Long id = requestService.createAndSubmit(WorkflowFixtures.form("5000"), financeRequester).getId();
+
+        Request reloaded = reload(id);
+        assertEquals(List.of(Role.DEPARTMENT_HEAD),
+                reloaded.getStages().stream().map(RequestStage::getApproverRole).toList());
+        assertTrue(queueIds(head).contains(id));
+        assertFalse(queueIds(manager).contains(id));
+        assertFalse(queueIds(finance).contains(id));
+    }
+
+    @Test
+    void managerRequestSkipsTheManagerStageButKeepsTheHigherOnes() {
+        policy("WF three", Role.MANAGER, Role.FINANCE_OFFICER, Role.DEPARTMENT_HEAD);
+        User managerRequester = user("wf-manager-requester", Role.MANAGER, department);
+
+        Long id = requestService.createAndSubmit(WorkflowFixtures.form("5000"), managerRequester).getId();
+
+        assertEquals(List.of(Role.FINANCE_OFFICER, Role.DEPARTMENT_HEAD),
+                reload(id).getStages().stream().map(RequestStage::getApproverRole).toList());
+    }
+
+    @Test
+    void departmentHeadRequestIsDecidedByAnotherDepartmentHead() {
+        policy("WF three", Role.MANAGER, Role.FINANCE_OFFICER, Role.DEPARTMENT_HEAD);
+        User headRequester = user("wf-head-requester", Role.DEPARTMENT_HEAD, department);
+
+        Long id = requestService.createAndSubmit(WorkflowFixtures.form("5000"), headRequester).getId();
+
+        assertEquals(List.of(Role.DEPARTMENT_HEAD),
+                reload(id).getStages().stream().map(RequestStage::getApproverRole).toList());
+        assertFalse(queueIds(headRequester).contains(id));
+        assertTrue(queueIds(head).contains(id));
     }
 
     @Test

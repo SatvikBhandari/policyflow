@@ -10,6 +10,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.csrf.CsrfException;
 
 import com.policyflow.policyflow.enums.Role;
 import com.policyflow.policyflow.security.RoleBasedSuccessHandler;
@@ -70,10 +72,22 @@ public class SecurityConfig {
                 .failureUrl("/login?error")
                 .permitAll())
             .logout(logout -> logout
-                .logoutUrl("/logout") // POST only, CSRF-protected
+                // Accept /logout with any method: the Sign out button POSTs (CSRF-protected), and typing
+                // or bookmarking /logout (GET) now signs out too instead of showing a 404 page.
+                .logoutRequestMatcher(request ->
+                        (request.getContextPath() + "/logout").equals(request.getRequestURI()))
                 .logoutSuccessUrl("/login?logout")
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID"));
+                .deleteCookies("JSESSIONID"))
+            .exceptionHandling(ex -> ex.accessDeniedHandler((request, response, denied) -> {
+                if (denied instanceof CsrfException) {
+                    // The page was open longer than the session lasted (or the server restarted):
+                    // send the person back to sign in instead of showing a 403 error page.
+                    response.sendRedirect(request.getContextPath() + "/login?expired");
+                } else {
+                    new AccessDeniedHandlerImpl().handle(request, response, denied);
+                }
+            }));
 
         return http.build();
     }

@@ -230,6 +230,8 @@ public class RequestService {
                                               RequestPriority priority, User requester) {
         PolicyEvaluation evaluation = policyEvaluationService.evaluate(
                 amount, category, priority, requester.getDepartment());
+        // Managers, Finance Officers and Department Heads are approved by the level above them
+        evaluation = policyEvaluationService.adjustForRequester(evaluation, requester.getRole());
         approverResolver.requireEligibleApprovers(evaluation.getApproverRoles(), requester);
         return evaluation;
     }

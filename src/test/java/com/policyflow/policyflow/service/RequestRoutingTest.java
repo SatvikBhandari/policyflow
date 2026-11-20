@@ -174,19 +174,31 @@ class RequestRoutingTest {
     // ---- who counts as an eligible approver ----
 
     @Test
-    void requesterIsNeverTheirOwnApprover() {
+    void aManagerRequestMovesUpToTheFinanceOfficer() {
         Department solo = departmentRepository.save(new Department("Solo Dept", "RTGSOLO"));
         User soloManager = saveUser("rtg-solo-manager", Role.MANAGER, solo);
+        saveUser("rtg-solo-finance", Role.FINANCE_OFFICER, solo);
         savePolicy("RT manager", "0", null, Role.MANAGER);
 
-        // The only manager in the department is the requester
-        assertThrows(NoEligibleApproverException.class,
-                () -> requestService.createAndSubmit(form("5000", RequestCategory.OTHER), soloManager));
-
-        // Once a second manager exists, the same request can be submitted
-        saveUser("rtg-second-manager", Role.MANAGER, solo);
+        // The requester is the only manager in the department, but that no longer blocks the request
         Request saved = requestService.createAndSubmit(form("5000", RequestCategory.OTHER), soloManager);
-        assertEquals(List.of(Role.MANAGER), rolesOf(saved));
+        assertEquals(List.of(Role.FINANCE_OFFICER), rolesOf(saved));
+    }
+
+    @Test
+    void requesterIsNeverTheirOwnApprover() {
+        Department solo = departmentRepository.save(new Department("Solo Dept", "RTGSOLO"));
+        User soloHead = saveUser("rtg-solo-head", Role.DEPARTMENT_HEAD, solo);
+        savePolicy("RT head", "0", null, Role.DEPARTMENT_HEAD);
+
+        // The only Department Head in the department is the requester: nobody above, nobody else to decide
+        assertThrows(NoEligibleApproverException.class,
+                () -> requestService.createAndSubmit(form("5000", RequestCategory.OTHER), soloHead));
+
+        // Once a second Department Head exists, the same request can be submitted
+        saveUser("rtg-second-head", Role.DEPARTMENT_HEAD, solo);
+        Request saved = requestService.createAndSubmit(form("5000", RequestCategory.OTHER), soloHead);
+        assertEquals(List.of(Role.DEPARTMENT_HEAD), rolesOf(saved));
     }
 
     @Test

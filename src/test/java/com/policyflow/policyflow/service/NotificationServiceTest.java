@@ -121,9 +121,11 @@ class NotificationServiceTest {
 
         requestService.createAndSubmit(WorkflowFixtures.form("5000"), managerRequester);
 
-        assertEquals(1, inbox(manager).size());
-        assertEquals(1, inbox(secondManager).size());
+        // A manager's request moves up to the Finance Officer, so no manager hears about it
+        assertTrue(inbox(manager).isEmpty());
+        assertTrue(inbox(secondManager).isEmpty());
         assertTrue(inbox(managerRequester).isEmpty());
+        assertEquals(1, inbox(finance).size());
     }
 
     // ---- approving ----
